@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Drawing;
+using System.IO;
+using System.IO.Compression;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -19,50 +22,42 @@ namespace ChallengesReset
             lc = new LeagueConnection();
         }
 
-        // Hàm này giờ có thêm async Task
         private async void resetButton_Click(object sender, EventArgs e)
         {
-            if (!checkIfLeagueIsConnected())
-            {
-                return;
-            }
+            if (!checkIfLeagueIsConnected()) return;
 
-            // Vô hiệu hóa các nút và hiện progress bar
             SetControlsEnabled(false);
             progressBar.Visible = true;
             editMessageLabel("Đang gửi yêu cầu...", Color.Black);
 
             try
             {
-                // Gửi yêu cầu và chờ kết quả
                 await lc.Post("/lol-challenges/v1/update-player-preferences/", "{\"challengeIds\": []}");
                 editMessageLabel("Đặt lại Thử thách thành công!", Color.Green);
             }
             catch (Exception ex)
             {
-                // Báo lỗi nếu có sự cố
                 editMessageLabel($"Lỗi: {ex.Message}", Color.Red);
             }
             finally
             {
-                // Dù thành công hay thất bại, cũng reset lại giao diện
-                await Task.Delay(2000); // Chờ 2 giây để người dùng đọc thông báo
+                await Task.Delay(2000);
                 progressBar.Visible = false;
                 editMessageLabel("", Color.Black);
                 SetControlsEnabled(true);
             }
         }
 
-        private void myCatButton_Click(object sender, EventArgs e)
+        // petButton_Click
+        private void petButton_Click(object sender, EventArgs e)
         {
-            //MessageBox.Show("Trình duyệt sẽ mở trang GitHub của dự án MyCat.", "Mở liên kết", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            System.Diagnostics.Process.Start("https://github.com/chill4share/MyCat");
+            // Tạm thời hiển thị một thông báo.
+            // Sau này sẽ thay thế nội dung của hàm này bằng logic giải nén và chạy file PET.
+            MessageBox.Show("Chức năng mở ứng dụng PET sẽ được tích hợp ở đây.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void aboutButton_Click(object sender, EventArgs e)
         {
-            // Tạm thời hiển thị một MessageBox. 
-            // Sau này có thể tạo một Form mới để hiển thị thông tin chi tiết.
             MessageBox.Show("Challenges Reset Tool\nPhiên bản 1.0\nTạo bởi Chill4Share", "Thông tin", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -77,7 +72,7 @@ namespace ChallengesReset
         private void SetControlsEnabled(bool enabled)
         {
             resetButton.Enabled = enabled;
-            myCatButton.Enabled = enabled;
+            petButton.Enabled = enabled; // Đổi ở đây
             aboutButton.Enabled = enabled;
         }
 
@@ -85,7 +80,7 @@ namespace ChallengesReset
         {
             if (!lc.IsConnected)
             {
-                editMessageLabel("Chưa kết nối đến client Liên Minh!\nHãy đăng nhập và chờ vài giây.", Color.Red);
+                editMessageLabel("Chưa kết nối! Vui lòng đăng nhập vào game trước.", Color.Red);
                 return false;
             }
             return true;
