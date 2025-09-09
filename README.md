@@ -11,7 +11,7 @@ Một công cụ Windows nhỏ gọn và đơn giản để quản lý Thử th�
 
 → có thể chạy trực tiếp bằng file scipt cho ai không thích giao diện (có hỗ trợ Windows/mac/linux)
 
-Tích hợp ứng dụng PET: Cung cấp lối tắt để khởi chạy ứng dụng Desktop Pet "MyCat". → đang phát triển thêm, bận đi ăn nem chua
+Tích hợp ứng dụng PET: Cung cấp lối tắt để khởi chạy ứng dụng Desktop Pet "MyCat". → đang phát triển thêm, bận đi ăn nem chua [My Cat](https://github.com/chill4share/MyCat)
 
 Giao diện trực quan: Tích hợp thanh tiến trình và thông báo trạng thái (thành công/lỗi) để người dùng dễ dàng theo dõi.
 
@@ -29,7 +29,7 @@ Công cụ sẽ tự động kết nối và gửi yêu cầu. Một thông báo
 
 #Tải về
 
-→ Xem Release
+→ [Xem Release](https://github.com/chill4share/ChallengesReset/releases/download/v0.0.1/ChallengesReset.exe)
 
 #Cảm ơn
 
