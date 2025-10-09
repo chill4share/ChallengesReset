@@ -21,6 +21,40 @@ namespace ChallengesReset
         private void ChallengesResetForm_Load(object sender, EventArgs e)
         {
             lc = new LeagueConnection();
+
+            editMessageLabel("🔍 Đang tìm client Liên Minh Huyền Thoại...", Color.DarkOrange);
+
+            lc.OnConnected += () =>
+            {
+                if (InvokeRequired)
+                    Invoke(new Action(() =>
+                    {
+                        resetButton.Enabled = true;
+                        editMessageLabel("✅ Đã kết nối với Liên Minh Huyền Thoại.", Color.Green);
+                    }));
+                else
+                {
+                    resetButton.Enabled = true;
+                    editMessageLabel("✅ Đã kết nối với Liên Minh Huyền Thoại.", Color.Green);
+                }
+            };
+
+            lc.OnDisconnected += () =>
+            {
+                if (InvokeRequired)
+                    Invoke(new Action(() =>
+                    {
+                        resetButton.Enabled = false;
+                        editMessageLabel("❌ Mất kết nối. Vui lòng mở lại Liên Minh.", Color.Red);
+                    }));
+                else
+                {
+                    resetButton.Enabled = false;
+                    editMessageLabel("❌ Mất kết nối. Vui lòng mở lại Liên Minh.", Color.Red);
+                }
+            };
+
+            resetButton.Enabled = lc.IsConnected;
         }
 
         private async void resetButton_Click(object sender, EventArgs e)
@@ -33,7 +67,11 @@ namespace ChallengesReset
 
             try
             {
-                await lc.Post("/lol-challenges/v1/update-player-preferences/", "{\"challengeIds\": []}");
+                await Task.Run(async () =>
+                {
+                    await lc.Post("/lol-challenges/v1/update-player-preferences/", "{\"challengeIds\": []}");
+                });
+
                 editMessageLabel("Đặt lại Thử thách thành công!", Color.Green);
             }
             catch (Exception ex)
@@ -42,14 +80,20 @@ namespace ChallengesReset
             }
             finally
             {
-                await Task.Delay(2000);
-                progressBar.Visible = false;
-                editMessageLabel("", Color.Black);
-                SetControlsEnabled(true);
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(2000);
+                    if (IsDisposed || Disposing) return;
+                    Invoke(new Action(() =>
+                    {
+                        progressBar.Visible = false;
+                        editMessageLabel("", Color.Black);
+                        SetControlsEnabled(true);
+                    }));
+                });
             }
         }
 
-        // petButton_Click
         private void petButton_Click(object sender, EventArgs e)
         {
             string resourceName = "ChallengesReset.Resources.LoveCat.zip";
@@ -76,7 +120,7 @@ namespace ChallengesReset
                                 "Phiên bản này không bao gồm gói My Cat.\n(Build nhẹ, không kèm LoveCat.zip)",
                                 "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information
                             );
-                            return; // Dừng luôn, không giải nén nữa
+                            return;
                         }
 
                         using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
@@ -89,31 +133,24 @@ namespace ChallengesReset
                 }
 
                 editMessageLabel("Đang khởi chạy My Cat...", Color.Black);
+                Process petProcess = Process.Start(exePath);
 
-                // Khởi chạy LoveCat.exe và lấy thông tin Process của nó
-                Process petProcess = System.Diagnostics.Process.Start(exePath);
-
-                // Khởi chạy "người dọn dẹp" (một bản sao ẩn của chính ChallengesReset.exe)
-                // và truyền cho nó "mật lệnh" cùng thông tin cần thiết
                 string selfPath = Application.ExecutablePath;
                 string arguments = $"--cleanup {petProcess.Id} \"{extractPath}\"";
-
-                ProcessStartInfo startInfo = new ProcessStartInfo(selfPath, arguments);
-                startInfo.WindowStyle = ProcessWindowStyle.Hidden; // Chạy ẩn
-                startInfo.CreateNoWindow = true;                   // Không tạo cửa sổ console
-                System.Diagnostics.Process.Start(startInfo);
+                ProcessStartInfo startInfo = new ProcessStartInfo(selfPath, arguments)
+                {
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    CreateNoWindow = true
+                };
+                Process.Start(startInfo);
 
                 Task.Delay(1000).ContinueWith(_ =>
                 {
-                    if (this.IsDisposed || this.Disposing) return;
+                    if (IsDisposed || Disposing) return;
                     if (messageLabel.InvokeRequired)
-                    {
                         messageLabel.Invoke(new Action(() => editMessageLabel("", Color.Black)));
-                    }
                     else
-                    {
                         editMessageLabel("", Color.Black);
-                    }
                 });
             }
             catch (Exception ex)
@@ -128,10 +165,9 @@ namespace ChallengesReset
 
         private void aboutButton_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("Challenges Reset Tool\nPhiên bản 1.0\nTạo bởi Chill4Share", "Thông tin", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Challenges Reset Tool\nPhiên bản 1.0\nTạo bởi Chill4Share",
+                "Thông tin", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
-
-        // ---- Các hàm tiện ích ----
 
         private void editMessageLabel(string msg, Color color)
         {
@@ -141,16 +177,16 @@ namespace ChallengesReset
 
         private void SetControlsEnabled(bool enabled)
         {
-            resetButton.Enabled = enabled;
+            resetButton.Enabled = enabled && lc.IsConnected;
             petButton.Enabled = enabled;
             aboutButton.Enabled = enabled;
         }
 
-        private Boolean checkIfLeagueIsConnected()
+        private bool checkIfLeagueIsConnected()
         {
             if (!lc.IsConnected)
             {
-                editMessageLabel("Chưa kết nối! Vui lòng đăng nhập vào game trước.", Color.Red);
+                editMessageLabel("❌ Chưa kết nối! Vui lòng đăng nhập vào game trước.", Color.Red);
                 return false;
             }
             return true;
