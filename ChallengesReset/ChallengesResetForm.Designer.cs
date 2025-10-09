@@ -17,12 +17,14 @@
 
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ChallengesResetForm));
             this.resetButton = new System.Windows.Forms.Button();
             this.messageLabel = new System.Windows.Forms.Label();
-            this.petButton = new System.Windows.Forms.Button(); // Đổi tên nút ở đây
+            this.petButton = new System.Windows.Forms.Button();
             this.aboutButton = new System.Windows.Forms.Button();
             this.progressBar = new System.Windows.Forms.ProgressBar();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.SuspendLayout();
             // 
             // resetButton
@@ -52,7 +54,8 @@
             this.petButton.Name = "petButton";
             this.petButton.Size = new System.Drawing.Size(140, 23);
             this.petButton.TabIndex = 3;
-            this.petButton.Text = "My Cat"; // Đổi Text ở đây
+            this.petButton.Text = "My Cat";
+            this.toolTip1.SetToolTip(this.petButton, "Mở ứng dụng tương tác với bàn phím khi gõ (phù hợp với Livestream LOL)");
             this.petButton.UseVisualStyleBackColor = true;
             this.petButton.Click += new System.EventHandler(this.petButton_Click);
             // 
@@ -83,7 +86,7 @@
             this.ClientSize = new System.Drawing.Size(484, 195);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.aboutButton);
-            this.Controls.Add(this.petButton); // Đổi ở đây
+            this.Controls.Add(this.petButton);
             this.Controls.Add(this.messageLabel);
             this.Controls.Add(this.resetButton);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -94,6 +97,7 @@
             this.Text = "Challenges Reset Tool";
             this.Load += new System.EventHandler(this.ChallengesResetForm_Load);
             this.ResumeLayout(false);
+
         }
 
         #endregion
@@ -103,5 +107,6 @@
         private System.Windows.Forms.Button petButton; // Đổi ở đây
         private System.Windows.Forms.Button aboutButton;
         private System.Windows.Forms.ProgressBar progressBar;
+        private System.Windows.Forms.ToolTip toolTip1;
     }
 }

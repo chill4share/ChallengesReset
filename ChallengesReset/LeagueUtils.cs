@@ -7,62 +7,86 @@ using System.Text.RegularExpressions;
 
 namespace ChallengesReset
 {
-    /**
-     * Some static utilities used to interact/query the state of the league client process.
-     */
+    /// <summary>
+    /// Tiện ích hỗ trợ dò tìm tiến trình League Client và thao tác với cửa sổ của nó.
+    /// </summary>
     static class LeagueUtils
     {
-        private static Regex AUTH_TOKEN_REGEX = new Regex("\"--remoting-auth-token=(.+?)\"");
-        private static Regex PORT_REGEX = new Regex("\"--app-port=(\\d+?)\"");
+        // Biểu thức chính quy dùng để tìm token & port trong CommandLine.
+        private static readonly Regex AUTH_TOKEN_REGEX = new Regex("--remoting-auth-token=([^\"]+)");
+        private static readonly Regex PORT_REGEX = new Regex("--app-port=([0-9]+)");
 
-        /**
-         * Returns a tuple with the process, remoting auth token and port of the current league client.
-         * Returns null if the current league client is not running.
-         */
+        /// <summary>
+        /// Quét toàn bộ tiến trình, tìm tiến trình LeagueClient thật sự.
+        /// Trả về tuple gồm: (Process, AuthToken, Port)
+        /// Nếu không tìm thấy, trả về null.
+        /// </summary>
         public static Tuple<Process, string, string> GetLeagueStatus()
         {
-            // Find the LeagueClientUx process.
-            foreach (var p in Process.GetProcessesByName("LeagueClientUx"))
+            foreach (var process in Process.GetProcesses())
             {
-                // Use WMI to figure out its command line.
-                using (var mos = new ManagementObjectSearcher("SELECT CommandLine FROM Win32_Process WHERE ProcessId = " + p.Id.ToString()))
-                using (var moc = mos.Get())
+                try
                 {
-                    var commandLine = (string)moc.OfType<ManagementObject>().First()["CommandLine"];
+                    // Dò CommandLine của tiến trình (qua WMI)
+                    using (var mos = new ManagementObjectSearcher(
+                        $"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {process.Id}"))
+                    using (var moc = mos.Get())
+                    {
+                        var commandLine = (string)moc.OfType<ManagementObject>().FirstOrDefault()?["CommandLine"];
+                        if (string.IsNullOrEmpty(commandLine))
+                            continue;
 
-                    // Use regex to extract data, return it.
-                    return new Tuple<Process, string, string>(
-                        p,
-                        AUTH_TOKEN_REGEX.Match(commandLine).Groups[1].Value,
-                        PORT_REGEX.Match(commandLine).Groups[1].Value
-                    );
+                        // Nếu tiến trình có chứa 2 tham số này => chính là League Client
+                        if (commandLine.Contains("--app-port") && commandLine.Contains("--remoting-auth-token"))
+                        {
+                            var authMatch = AUTH_TOKEN_REGEX.Match(commandLine);
+                            var portMatch = PORT_REGEX.Match(commandLine);
+
+                            if (authMatch.Success && portMatch.Success)
+                            {
+                                return new Tuple<Process, string, string>(
+                                    process,
+                                    authMatch.Groups[1].Value,
+                                    portMatch.Groups[1].Value
+                                );
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Có thể gặp AccessDenied với 1 số tiến trình hệ thống → bỏ qua
+                    continue;
                 }
             }
 
-            // LeagueClientUx process was not found. Return null.
             return null;
         }
 
-        /**
-         * Checks if any window created by the specified process is active. If yes, returns true.
-         */
+        /// <summary>
+        /// Kiểm tra xem cửa sổ chính của tiến trình có đang được focus không.
+        /// </summary>
         public static bool IsWindowFocused(Process process)
         {
             var handle = GetForegroundWindow();
-            if (handle.ToInt32() == 0) return false;
+            if (handle == IntPtr.Zero) return false;
 
             GetWindowThreadProcessId(handle, out var focusedPid);
             return focusedPid == process.Id;
         }
 
-        /**
-         * Focuses the main window of the specified process.
-         */
+        /// <summary>
+        /// Đưa cửa sổ chính của tiến trình ra trước màn hình (focus lại).
+        /// </summary>
         public static void FocusWindow(Process process)
         {
+            if (process == null || process.MainWindowHandle == IntPtr.Zero)
+                return;
+
             SetForegroundWindow(process.MainWindowHandle);
         }
 
+        // ====== native Win32 API ======
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 

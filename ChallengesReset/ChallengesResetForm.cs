@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.IO.Compression;
@@ -51,9 +52,78 @@ namespace ChallengesReset
         // petButton_Click
         private void petButton_Click(object sender, EventArgs e)
         {
-            // Tạm thời hiển thị một thông báo.
-            // Sau này sẽ thay thế nội dung của hàm này bằng logic giải nén và chạy file PET.
-            MessageBox.Show("Chức năng mở ứng dụng PET sẽ được tích hợp ở đây.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string resourceName = "ChallengesReset.Resources.LoveCat.zip";
+            string subFolderName = "LoveCat";
+            string exeNameInZip = "LoveCat.exe";
+
+            string extractPath = Path.Combine(Path.GetTempPath(), "MyPetApp_Chill4Share");
+            string exePath = Path.Combine(extractPath, subFolderName, exeNameInZip);
+
+            SetControlsEnabled(false);
+            editMessageLabel("Đang chuẩn bị khởi chạy My Cat...", Color.Black);
+
+            try
+            {
+                if (!File.Exists(exePath))
+                {
+                    editMessageLabel("Giải nén tài nguyên lần đầu...", Color.Black);
+                    var assembly = Assembly.GetExecutingAssembly();
+                    using (var stream = assembly.GetManifestResourceStream(resourceName))
+                    {
+                        if (stream == null)
+                        {
+                            MessageBox.Show(
+                                "Phiên bản này không bao gồm gói My Cat.\n(Build nhẹ, không kèm LoveCat.zip)",
+                                "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information
+                            );
+                            return; // Dừng luôn, không giải nén nữa
+                        }
+
+                        using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
+                        {
+                            if (Directory.Exists(extractPath)) Directory.Delete(extractPath, true);
+                            Directory.CreateDirectory(extractPath);
+                            archive.ExtractToDirectory(extractPath);
+                        }
+                    }
+                }
+
+                editMessageLabel("Đang khởi chạy My Cat...", Color.Black);
+
+                // Khởi chạy LoveCat.exe và lấy thông tin Process của nó
+                Process petProcess = System.Diagnostics.Process.Start(exePath);
+
+                // Khởi chạy "người dọn dẹp" (một bản sao ẩn của chính ChallengesReset.exe)
+                // và truyền cho nó "mật lệnh" cùng thông tin cần thiết
+                string selfPath = Application.ExecutablePath;
+                string arguments = $"--cleanup {petProcess.Id} \"{extractPath}\"";
+
+                ProcessStartInfo startInfo = new ProcessStartInfo(selfPath, arguments);
+                startInfo.WindowStyle = ProcessWindowStyle.Hidden; // Chạy ẩn
+                startInfo.CreateNoWindow = true;                   // Không tạo cửa sổ console
+                System.Diagnostics.Process.Start(startInfo);
+
+                Task.Delay(1000).ContinueWith(_ =>
+                {
+                    if (this.IsDisposed || this.Disposing) return;
+                    if (messageLabel.InvokeRequired)
+                    {
+                        messageLabel.Invoke(new Action(() => editMessageLabel("", Color.Black)));
+                    }
+                    else
+                    {
+                        editMessageLabel("", Color.Black);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Không thể khởi chạy ứng dụng PET:\n{ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                SetControlsEnabled(true);
+            }
         }
 
         private void aboutButton_Click(object sender, EventArgs e)
@@ -72,7 +142,7 @@ namespace ChallengesReset
         private void SetControlsEnabled(bool enabled)
         {
             resetButton.Enabled = enabled;
-            petButton.Enabled = enabled; // Đổi ở đây
+            petButton.Enabled = enabled;
             aboutButton.Enabled = enabled;
         }
 
