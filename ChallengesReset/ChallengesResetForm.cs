@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -96,9 +97,9 @@ namespace ChallengesReset
 
         private void petButton_Click(object sender, EventArgs e)
         {
-            string resourceName = "ChallengesReset.Resources.LoveCat.zip";
-            string subFolderName = "LoveCat";
-            string exeNameInZip = "LoveCat.exe";
+            const string resourceName = "ChallengesReset.Resources.LoveCat.zip";
+            const string subFolderName = "LoveCat";
+            const string exeNameInZip = "LoveCat.exe";
 
             string extractPath = Path.Combine(Path.GetTempPath(), "MyPetApp_Chill4Share");
             string exePath = Path.Combine(extractPath, subFolderName, exeNameInZip);
@@ -108,42 +109,50 @@ namespace ChallengesReset
 
             try
             {
+                // 🔍 Kiểm tra xem bản build này có nhúng resource LoveCat.zip hay không
+                var assembly = Assembly.GetExecutingAssembly();
+                string[] availableResources = assembly.GetManifestResourceNames();
+                bool hasLoveCat = availableResources.Contains(resourceName);
+
+                if (!hasLoveCat)
+                {
+                    MessageBox.Show(
+                        "Phiên bản này không bao gồm phần mở rộng My Cat.\n(Build nhẹ, không kèm LoveCat.zip)",
+                        "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information
+                    );
+                    return;
+                }
+
+                // ✅ Có resource, kiểm tra xem đã giải nén chưa
                 if (!File.Exists(exePath))
                 {
-                    editMessageLabel("Giải nén tài nguyên lần đầu...", Color.Black);
-                    var assembly = Assembly.GetExecutingAssembly();
-                    using (var stream = assembly.GetManifestResourceStream(resourceName))
-                    {
-                        if (stream == null)
-                        {
-                            MessageBox.Show(
-                                "Phiên bản này không bao gồm gói My Cat.\n(Build nhẹ, không kèm LoveCat.zip)",
-                                "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information
-                            );
-                            return;
-                        }
+                    editMessageLabel("Giải nén My Cat lần đầu...", Color.Black);
 
-                        using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
-                        {
-                            if (Directory.Exists(extractPath)) Directory.Delete(extractPath, true);
-                            Directory.CreateDirectory(extractPath);
-                            archive.ExtractToDirectory(extractPath);
-                        }
+                    using (var stream = assembly.GetManifestResourceStream(resourceName))
+                    using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
+                    {
+                        if (Directory.Exists(extractPath))
+                            Directory.Delete(extractPath, true);
+                        Directory.CreateDirectory(extractPath);
+                        archive.ExtractToDirectory(extractPath);
                     }
                 }
 
+                // 🚀 Chạy LoveCat.exe
                 editMessageLabel("Đang khởi chạy My Cat...", Color.Black);
                 Process petProcess = Process.Start(exePath);
 
+                // 🧹 Gọi lại ChallengesReset.exe với mật lệnh dọn dẹp sau khi LoveCat thoát
                 string selfPath = Application.ExecutablePath;
                 string arguments = $"--cleanup {petProcess.Id} \"{extractPath}\"";
-                ProcessStartInfo startInfo = new ProcessStartInfo(selfPath, arguments)
+                var startInfo = new ProcessStartInfo(selfPath, arguments)
                 {
                     WindowStyle = ProcessWindowStyle.Hidden,
                     CreateNoWindow = true
                 };
                 Process.Start(startInfo);
 
+                // 🕐 Làm sạch UI sau một lúc
                 Task.Delay(1000).ContinueWith(_ =>
                 {
                     if (IsDisposed || Disposing) return;
@@ -155,7 +164,7 @@ namespace ChallengesReset
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Không thể khởi chạy ứng dụng PET:\n{ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Không thể khởi chạy My Cat:\n{ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
