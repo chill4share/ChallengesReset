@@ -1,5 +1,5 @@
 # ChallengesReset
-Xóa Khung/Huy Hiệu/Thử Thách LOL bản VN
+Xóa Khung/Biệt Hiệu/Thử Thách LOL bản VN
 
 Challenges Reset Tool
 
